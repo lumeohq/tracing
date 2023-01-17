@@ -1460,21 +1460,22 @@ impl Drop for Span {
             ref subscriber,
         }) = self.inner
         {
-            let (name, is_sla) = {
+            let (name, report) = {
                 match self.meta {
                     Some(metadata) => {
-                        let is_sla = metadata.fields().field("sla").is_some();
+                        let _is_sla = metadata.fields().field("sla").is_some();
+                        let is_smtp_gateway = metadata.module_path().unwrap_or_default().contains("lumeo_smtp_gateway");
                         let name = metadata.name();
-                        (name, is_sla)
+                        (name, is_smtp_gateway)
                     },
                     None => ("<unknown>", false)
                 }
             };
-            if is_sla {
+            if report {
                 eprintln!("Trying to close span {name} ID({id:?})");
             }
             let result = subscriber.try_close(id.clone());
-            if is_sla {
+            if report {
                 eprintln!("Finished trying to close span {name} ID({id:?}), result: {result}");
             }
         }
