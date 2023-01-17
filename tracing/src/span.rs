@@ -1460,7 +1460,23 @@ impl Drop for Span {
             ref subscriber,
         }) = self.inner
         {
-            subscriber.try_close(id.clone());
+            let (name, is_sla) = {
+                match self.meta {
+                    Some(metadata) => {
+                        let is_sla = metadata.fields().field("sla").is_some();
+                        let name = metadata.name();
+                        (name, is_sla)
+                    },
+                    None => ("<unknown>", false)
+                }
+            };
+            if is_sla {
+                eprintln!("Trying to close span {name} ID({id:?})");
+            }
+            let result = subscriber.try_close(id.clone());
+            if is_sla {
+                eprintln!("Finished trying to close span {name} ID({id:?}), result: {result}");
+            }
         }
 
         if_log_enabled! { crate::Level::TRACE, {
